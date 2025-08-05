@@ -1,0 +1,33 @@
+import pandas as pd
+import numpy as np
+from rapidfuzz import process,fuzz
+
+df = pd.read_csv('messy_hr_data.csv')
+
+
+
+df['Status'] = df['Status'].str.lower().str.strip()
+valid_sample = ['active','inactive']
+def myfunc(idk):
+	match = process.extractOne(idk, valid_sample)
+	if match and match[1] >= 85:
+		return match[0]
+	else:
+		return np.nan
+df['Status'] = df['Status'].apply(myfunc)
+df = df.loc[((pd.isna(df['Salary'])) & (df['Status'] == 'active')) | ((pd.notna(df['Salary'])) & (df['Status'] == 'inactive'))]
+df['Salary'] = df['Salary'].str.replace('[^0-9]','',regex = True)
+df['Salary'] = pd.to_numeric(df['Salary'], errors = 'coerce')
+df['Salary'] = df['Salary'].fillna(np.round(df['Salary'].mean()))
+df['Age'] = pd.to_numeric(df['Age'], errors = 'coerce')
+df['Age'] = df['Age'].fillna(np.round(df['Age'].mean()))
+df['JoinDate'] = pd.to_datetime(df['JoinDate'])
+
+def earning_in_retirement_vs_active(df):
+	earning_in_retirement_vs_active = df.groupby('Status')['Salary'].mean()
+	return earning_in_retirement_vs_active
+	
+df['Experience'] = 2025 -  df['JoinDate'].dt.year
+df = df.drop_duplicates(subset = 'Name', keep = 'last')
+
+df.plot(x = 'Experience',y = 'Salary', kind = 'line')
